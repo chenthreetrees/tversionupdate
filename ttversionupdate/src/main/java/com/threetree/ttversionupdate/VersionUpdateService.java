@@ -16,7 +16,7 @@ import com.threetree.tthttp.viewbind.IProgressView;
  * Created by Administrator on 2018/7/12.
  */
 
-public class VersionUpdateService extends Service implements IProgressView {
+public class VersionUpdateService extends Service {
     private final int NOTIFICATION_ID = 100;
 
     private boolean active;
@@ -58,7 +58,62 @@ public class VersionUpdateService extends Service implements IProgressView {
     {
         super.onCreate();
         active = true;
-        mPresenter = new DownLoadPresenter(this,"http://www.baidu.com");
+        init();
+    }
+
+    private void init()
+    {
+        mPresenter = new DownLoadPresenter(new IProgressView() {
+            @Override
+            public void start()
+            {
+                doDownLoadTask();
+            }
+
+            @Override
+            public void error(int code, String message)
+            {
+                downLoading = false;
+                if (mDownLoadListener != null) {
+                    mDownLoadListener.downLoadLatestFailed(code,message);
+                }
+            }
+
+            @Override
+            public void progress(long progress, long total,float speed)
+            {
+                mProgress = (int)(progress*100/total);
+                if (mDownLoadListener != null) {
+                    mDownLoadListener.inProgress(mProgress,speed);
+                }
+                //频繁更新notification会使页面卡顿
+                if(mProgress%5 == 0)
+                {
+                    mNotificationBuilder.setContentTitle("正在下载更新" + mProgress + "%");
+                    mNotificationBuilder.setProgress(100, mProgress, false);
+                    mNotificationManager.notify(NOTIFICATION_ID, mNotificationBuilder.getNotification());
+                }
+
+                if (mProgress >= 100) {
+                    mNotificationManager.cancelAll();
+                }
+            }
+
+            @Override
+            public boolean isActive()
+            {
+                return active;
+            }
+
+            @Override
+            public void success()
+            {
+                if (mDownLoadListener != null) {
+                    mDownLoadListener.downLoadLatestSuccess();
+                }
+                downLoading = false;
+            }
+        });
     }
 
     @Override
@@ -67,9 +122,7 @@ public class VersionUpdateService extends Service implements IProgressView {
         super.onDestroy();
         active = false;
         if(mPresenter != null)
-        {
             mPresenter.destroy();
-        }
         stopDownLoadForground();
         if (mNotificationManager != null)
             mNotificationManager.cancelAll();
@@ -111,9 +164,8 @@ public class VersionUpdateService extends Service implements IProgressView {
 
         starDownLoadForground();
         downLoading = true;
-        if (mDownLoadListener != null) {
+        if (mDownLoadListener != null)
             mDownLoadListener.begin();
-        }
     }
 
     public boolean isDownLoading() {
@@ -130,9 +182,8 @@ public class VersionUpdateService extends Service implements IProgressView {
      */
     private void starDownLoadForground() {
         if(iconRes == 0)
-        {
-            throw new NullPointerException("smallIcon of notification is null");
-        }
+            throw new NullPointerException("smallIcon of notification must not be null");
+
         CharSequence text = "下载中,请稍后...";
         mNotificationBuilder = new Notification.Builder(this);
         mNotificationBuilder.setSmallIcon(iconRes);  // the status icon
@@ -149,73 +200,5 @@ public class VersionUpdateService extends Service implements IProgressView {
 
     private void stopDownLoadForground() {
         stopForeground(true);
-    }
-
-    @Override
-    public void start()
-    {
-        doDownLoadTask();
-    }
-
-    @Override
-    public void error(int code, String message)
-    {
-        downLoading = false;
-        if (mDownLoadListener != null) {
-            mDownLoadListener.downLoadLatestFailed(code,message);
-        }
-    }
-
-    @Override
-    public void progress(long progress, long total,float speed)
-    {
-        mProgress = (int)(progress*100/total);
-        if (mDownLoadListener != null) {
-            mDownLoadListener.inProgress(mProgress,speed);
-        }
-        //频繁更新notification会使页面卡顿
-        if(mProgress%3 == 0)
-        {
-            mNotificationBuilder.setContentTitle("正在下载更新" + mProgress + "%");
-            mNotificationBuilder.setProgress(100, mProgress, false);
-            mNotificationManager.notify(NOTIFICATION_ID, mNotificationBuilder.getNotification());
-        }
-
-        if (mProgress >= 100) {
-            mNotificationManager.cancelAll();
-        }
-    }
-
-    @Override
-    public boolean isActive()
-    {
-        return active;
-    }
-
-    @Override
-    public void success()
-    {
-        if (mDownLoadListener != null) {
-            mDownLoadListener.downLoadLatestSuccess();
-        }
-        downLoading = false;
-    }
-
-    @Override
-    public void toast(int code, String message)
-    {
-
-    }
-
-    @Override
-    public void showLoading(boolean isCancel)
-    {
-
-    }
-
-    @Override
-    public void dismissLoading()
-    {
-
     }
 }

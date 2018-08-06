@@ -9,7 +9,7 @@ public class VersionUpdate {
     public int type;
     public String url;
     public String fileDir;
-    public String fileName;
+    public String fileName;//不可以带后缀
     public int iconRes;//通知栏显示的小图标
 
     public class Type

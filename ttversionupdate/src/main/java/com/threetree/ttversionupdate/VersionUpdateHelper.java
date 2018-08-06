@@ -26,11 +26,42 @@ public class VersionUpdateHelper implements ServiceConnection {
     private ProgressDialog progressDialog;
 
     private VersionUpdate versionUpdate;
-    private boolean isCanceled;
     private OnUpdateResultListener mResultListener;
     private OnMustUpdateCancelListener mCancelListener;
 
     private boolean isCheckLoad;
+
+    private static VersionUpdateHelper mInstance;
+    private VersionUpdateHelper(){}
+
+    public static VersionUpdateHelper getInstance()
+    {
+        if(mInstance == null)
+            mInstance = new VersionUpdateHelper();
+        return mInstance;
+    }
+
+    /**
+     * 上下文
+     * @param context
+     * @return
+     */
+    public VersionUpdateHelper with(Context context)
+    {
+        this.context = context;
+        return this;
+    }
+
+    /**
+     * 版本配置信息
+     * @param versionUpdate
+     * @return
+     */
+    public VersionUpdateHelper version(VersionUpdate versionUpdate)
+    {
+        this.versionUpdate = versionUpdate;
+        return this;
+    }
 
     /**
      * 强制更新时，取消事件的监听
@@ -49,23 +80,22 @@ public class VersionUpdateHelper implements ServiceConnection {
         void onError(int code, String message);
     }
 
-    public VersionUpdateHelper(Context context,VersionUpdate versionUpdate) {
-        this.context = context;
-        this.versionUpdate = versionUpdate;
-    }
-
-    public void resetCancelFlag() {
-        isCanceled = false;
-    }
-
-    public void setResultListener(OnUpdateResultListener resultListener)
+    /**
+     * 更新结果的监听
+     */
+    public VersionUpdateHelper resultListener(OnUpdateResultListener resultListener)
     {
         this.mResultListener = resultListener;
+        return this;
     }
 
-    public void setCancelListener(OnMustUpdateCancelListener cancelListener)
+    /**
+     * 强制更新时，取消事件的监听
+     */
+    public VersionUpdateHelper cancelListener(OnMustUpdateCancelListener cancelListener)
     {
         this.mCancelListener = cancelListener;
+        return this;
     }
 
     /**
@@ -74,17 +104,22 @@ public class VersionUpdateHelper implements ServiceConnection {
      * false-不检查，每次都重新下载
      * @param isCheckLoad
      */
-    public void setCheckLoad(boolean isCheckLoad)
+    public VersionUpdateHelper setCheckLoad(boolean isCheckLoad)
     {
         this.isCheckLoad = isCheckLoad;
+        return this;
     }
 
     /**
      * 开始更新
      */
     public void startUpdateVersion() {
-        if (isCanceled)
-            return;
+
+        if(context==null)
+            throw new NullPointerException("context must not be null");
+        if(versionUpdate==null)
+            throw new NullPointerException("versionUpdate must not be null");
+
         if (isWaitForUpdate() || isWaitForDownload()) {
             return;
         }
@@ -104,11 +139,6 @@ public class VersionUpdateHelper implements ServiceConnection {
      * 停止更新
      */
     public void stopUpdateVersion() {
-        unBindService();
-    }
-
-    private void cancel() {
-        isCanceled = true;
         unBindService();
     }
 
@@ -142,7 +172,6 @@ public class VersionUpdateHelper implements ServiceConnection {
                 unBindService();
                 if (versionUpdate.isMustUpdate()) {
                     //强制更新，不更新则退出应用
-//                    GwApplication.getGwApplication().exit();
                     if(mCancelListener != null)
                     {
                         mCancelListener.onCancel();
@@ -183,7 +212,7 @@ public class VersionUpdateHelper implements ServiceConnection {
             builer.setNegativeButton("稍后更新", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
-                    cancel();
+                    unBindService();
                 }
             });
         }
@@ -215,7 +244,7 @@ public class VersionUpdateHelper implements ServiceConnection {
             builer.setNegativeButton("稍后更新", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
-                    cancel();
+                    unBindService();
                 }
             });
         }
@@ -224,7 +253,7 @@ public class VersionUpdateHelper implements ServiceConnection {
         waitForUpdateDialog.show();
     }
 
-    public void startDownLoad(String url,String fileDir,String fileName)
+    private void startDownLoad(String url,String fileDir,String fileName)
     {
         service.startDownLoad(url,fileDir,fileName);
     }
@@ -327,61 +356,4 @@ public class VersionUpdateHelper implements ServiceConnection {
     {
         return versionUpdate.fileDir+File.separator + versionUpdate.fileName + APK_SUFFIX;
     }
-
-
-//    public void checkVersion(Version data,boolean isToast)
-//    {
-//        if(data != null)
-//        {
-//            String url = data.linkUrl;
-//            if(TextUtils.isEmpty(url))
-//            {
-//                return;
-//            }
-//
-//            VersionUpdate versionUpdate = new VersionUpdate();
-//            int code = com.guawa.common.BuildConfig.VERSION_CODE;
-//            boolean isNew = true;
-//            if(!Utils.isEmpty(data.mustFlushVersion))
-//            {
-//                for (Integer version:data.mustFlushVersion)
-//                {
-//                    if(version == code)
-//                    {
-//                        isNew = false;
-//                        break;
-//                    }
-//                }
-//                versionUpdate.type = VersionUpdate.Type.MUSTUPDATE;
-//            }else if(!Utils.isEmpty(data.flushVersion))
-//            {
-//                for (Integer version:data.flushVersion)
-//                {
-//                    if(version == code)
-//                    {
-//                        isNew = false;
-//                        break;
-//                    }
-//                }
-//                versionUpdate.type = VersionUpdate.Type.NEEDUPDATE;
-//            }
-//            if(isNew)
-//            {
-//                if(isToast)
-//                {
-//                    Toast.makeText(context,"当前已经是最新版本",Toast.LENGTH_SHORT).show();
-//                }
-//                return;
-//            }
-//            versionUpdate.url = url;
-//            Version.Config config = data.parse();
-//            if(config != null && !TextUtils.isEmpty(config.tip))
-//            {
-//                versionUpdate.content = config.tip;
-//            }
-//            VersionUpdateHelper.resetCancelFlag();
-//            setVersionUpdate(versionUpdate);
-//            startUpdateVersion();
-//        }
-//    }
 }
