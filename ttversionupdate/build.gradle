@@ -29,5 +29,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.+'
     testCompile 'junit:junit:4.12'
 
-    compile 'com.github.chenthreetrees:thttp:1.0.5'
+    compile 'com.github.chenthreetrees:thttp:1.0.7'
 }

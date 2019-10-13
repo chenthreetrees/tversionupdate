@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         update.iconRes = R.mipmap.ic_launcher;
         update.content = "发现新的版本，需要马上更新";
         update.type = VersionUpdate.Type.MUSTUPDATE;
-        update.url = "http://guawa-v3.oss-cn-shenzhen.aliyuncs.com/common/1533195088000APK.apk";
+        update.url = "http://lecturerapics.myckjr.com/storage/apks/srg_v1.6_16_jiagu_sign.apk";
 
         VersionUpdateHelper.getInstance()
                 .with(this)
